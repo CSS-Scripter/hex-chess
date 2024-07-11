@@ -1,3 +1,11 @@
+import { BischopMoveSet } from "./movesets/bischopMoveSet";
+import { KingMoveSet } from "./movesets/kingMoveSet";
+import { KnightMoveSet } from "./movesets/knightMoveSet";
+import type { MoveSet } from "./movesets/moveset";
+import { PawnMoveSet } from "./movesets/pawnMoveSet";
+import { QueenMoveSet } from "./movesets/queenMoveSet";
+import { RookMoveSet } from "./movesets/rookMoveSet";
+
 export enum Piece {
     KING = '♔♚',
     QUEEN = '♕♛',
@@ -29,6 +37,7 @@ export type Tile = {
     color: Color;
     gradient: 0 | 1 | 2;
     highlighted: boolean;
+    isInitialPosition: boolean;
 
     directions: Record<Directions, Tile | undefined>;
 }
@@ -48,9 +57,10 @@ export class Board {
                 this.board[y].push({
                     name: tileName,
                     piece: Piece.EMPTY,
-                    color: Color.WHITE,
+                    color: Color.NONE,
                     gradient: this.getTileGradient(rows, x, y),
                     highlighted: false,
+                    isInitialPosition: false,
                     directions: {}
                 } as Tile);
             }
@@ -59,17 +69,6 @@ export class Board {
         for(let y = 0; y < this.board.length; y++) {
             for(let x = 0; x < this.board[y].length; x++) {
                 const tile = this.board[y][x];
-
-                const isAtBottom = y === this.board.length-1
-                const isAtTop = y <= 5 && (x === this.board[y].length-1 || x === 0);
-
-                const isAtLeft = x === 0;
-                const isAtRight = x === this.board[y].length;
-
-                const isAtTopLeft = (x <= 6 && isAtTop);
-                const isAtTopRight = (x >= 6 && isAtTop);
-                const isAtBottomLeft = (x <= 6 && isAtBottom);
-                const isAtBottomRight = (x >= 6 && isAtBottom);
 
                 const centerX = Math.ceil(this.board[y].length / 2) - 1;
                 const shrinkY = 4;
@@ -159,7 +158,6 @@ export class Board {
             [7, 4, Piece.PAWN, Color.BLACK],
             [8, 4, Piece.PAWN, Color.BLACK],
 
-            
             [5, 10, Piece.BISCHOP, Color.WHITE],
             [5, 9, Piece.BISCHOP, Color.WHITE],
             [5, 8, Piece.BISCHOP, Color.WHITE],
@@ -178,12 +176,16 @@ export class Board {
             [7, 8, Piece.PAWN, Color.WHITE],
             [8, 9, Piece.PAWN, Color.WHITE],
             [9, 10, Piece.PAWN, Color.WHITE],
+
+            // [5, 5, Piece.QUEEN, Color.WHITE],
+            // [6, 4, Piece.QUEEN, Color.BLACK]
         ] as [number, number, Piece, Color][];
 
         for (const pos of startingPositions) {
             const [x, y, piece, color] = pos;
             this.board[y][x].piece = piece;
             this.board[y][x].color = color;
+            this.board[y][x].isInitialPosition = true;
         }
     }
 
@@ -212,120 +214,44 @@ export class Board {
         return this.board;
     }
 
-    public highlightTile(x: number, y: number) {
-        const tile = this.board[y][x];
-        tile.highlighted = true;
-
+    public highlightTile(tile: Tile) {
+        let moveset: MoveSet | undefined = undefined;
         switch(tile.piece) {
             case Piece.KING:
-                this.highlightKing(tile);
+                moveset = new KingMoveSet();
                 break;
             case Piece.QUEEN:
-                this.highlightBischop(tile);
-                this.highlightRook(tile);
+                moveset = new QueenMoveSet();
                 break;
             case Piece.BISCHOP:
-                this.highlightBischop(tile);
+                moveset = new BischopMoveSet();
                 break;
             case Piece.KNIGHT:
-                this.highlightKnight(tile);
+                moveset = new KnightMoveSet();
                 break;
             case Piece.ROOK:
-                this.highlightRook(tile);
+                moveset = new RookMoveSet();
                 break;
             case Piece.PAWN:
-                this.highlightPawn(tile);
+                moveset = new PawnMoveSet();
                 break;
         }
 
-        // this.highlightBischop(tile);
-        // this.highlightRook(tile);
-    }
-
-    private highlightRook(tile: Tile) {
-        const directions = [
-            Directions.TOP,
-            Directions.TOPLEFT,
-            Directions.TOPRIGHT,
-            Directions.BOTTOM,
-            Directions.BOTTOMLEFT,
-            Directions.BOTTOMRIGHT,
-        ];
-
-        for(const dir of directions) {
-            let foundTile = tile.directions[dir];
-            while (foundTile) {
-                if (foundTile.piece !== Piece.EMPTY) break;
-                foundTile.highlighted = true;
-                foundTile = foundTile.directions[dir];
-            }
+        if (moveset) {
+            tile.highlighted = true;
+            this.highlightMoveSet(tile, moveset);
         }
     }
 
-    private highlightBischop(tile: Tile) {
-        const directions = [
-            [Directions.TOP, Directions.TOPRIGHT],
-            [Directions.TOP, Directions.TOPLEFT],
-            [Directions.BOTTOMLEFT, Directions.TOPLEFT],
-            [Directions.BOTTOMLEFT, Directions.BOTTOM],
-            [Directions.BOTTOMRIGHT, Directions.TOPRIGHT],
-            [Directions.BOTTOMRIGHT, Directions.BOTTOM],
-        ];
-
-        for(const dirs of directions) {
-            let foundTile = tile as Tile | undefined;
-            dirs.forEach((d) => foundTile = foundTile?.directions[d])
-            while (foundTile) {
-                if (foundTile.piece !== Piece.EMPTY) break;
-                foundTile.highlighted = true;
-                dirs.forEach((d) => foundTile = foundTile?.directions[d]);
-            }
-        }
-    }
-
-    private highlightKing(tile: Tile) {
-        const directions = [
-            Directions.TOP,
-            Directions.TOPLEFT,
-            Directions.TOPRIGHT,
-            Directions.BOTTOM,
-            Directions.BOTTOMLEFT,
-            Directions.BOTTOMRIGHT,
-        ];
-
-        for(const dir of directions) {
-            const foundTile = tile.directions[dir];
-            if (foundTile && foundTile.piece === Piece.EMPTY) foundTile.highlighted = true;
-        }
+    private highlightMoveSet(tile: Tile, moveset: MoveSet) {
+        const tilesToHighlight = moveset.getAvailableTiles(tile);
+        tilesToHighlight.forEach((t) => t.highlighted = true);
     }
 
     private highlightPawn(tile: Tile) {
         const direction = tile.color === Color.WHITE ? Directions.TOP : Directions.BOTTOM;
         const foundTile = tile.directions[direction];
         if (foundTile) foundTile.highlighted = true;
-    }
-
-    private highlightKnight(tile: Tile) {
-        const directions = [
-            [Directions.TOP, Directions.TOP, Directions.TOPRIGHT],
-            [Directions.TOP, Directions.TOP, Directions.TOPLEFT],
-            [Directions.TOPLEFT, Directions.TOPLEFT, Directions.TOP],
-            [Directions.TOPLEFT, Directions.TOPLEFT, Directions.BOTTOMLEFT],
-            [Directions.TOPRIGHT, Directions.TOPRIGHT, Directions.TOP],
-            [Directions.TOPRIGHT, Directions.TOPRIGHT, Directions.BOTTOMRIGHT],
-            [Directions.BOTTOM, Directions.BOTTOM, Directions.BOTTOMLEFT],
-            [Directions.BOTTOM, Directions.BOTTOM, Directions.BOTTOMRIGHT],
-            [Directions.BOTTOMLEFT, Directions.BOTTOMLEFT, Directions.TOPLEFT],
-            [Directions.BOTTOMLEFT, Directions.BOTTOMLEFT, Directions.BOTTOM],
-            [Directions.BOTTOMRIGHT, Directions.BOTTOMRIGHT, Directions.TOPRIGHT],
-            [Directions.BOTTOMRIGHT, Directions.BOTTOMRIGHT, Directions.BOTTOM],
-        ];
-
-        for(const dirs of directions) {
-            let foundTile = tile as Tile | undefined;
-            dirs.forEach((d) => foundTile = foundTile?.directions[d])
-            if (foundTile?.piece === Piece.EMPTY) foundTile.highlighted = true;
-        }
     }
 
     public clearHighlight() {

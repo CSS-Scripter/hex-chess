@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Board, Color, Piece } from "$lib/board";
+	import { Color, Piece, type Tile } from "$lib/board";
+	import { GetGame } from "$lib/game";
 
-const boardObject = new Board();
-let board = boardObject.getBoard();
+let board = GetGame().board.getBoard();
 let hovererd = 'none';
+let selectedTile = undefined as undefined | Tile;
 
 function findTopMargin(rowSize: number, i: number) {
     const center = Math.ceil(rowSize / 2) - 1;
@@ -17,16 +18,34 @@ function getTileGradient(x: number, y: number) {
     return gradients[tile.gradient];
 }
 
-function clearHover() {
-    boardObject.clearHighlight();
-    board = boardObject.getBoard();
+function clearHighlight() {
+    GetGame().board.clearHighlight();
+    board = GetGame().board.getBoard();
 }
 
-function tileHover(x: number, y: number) {
-    boardObject.highlightTile(x, y);
-    hovererd = board[y][x].name;
+function onTileClick(tile: Tile) {
+    if (tile.color === GetGame().currentColor) {
+        clearHighlight();
+        // Undo other selections if present
+        // Select current tile
+        selectedTile = tile;
+        GetGame().board.highlightTile(tile);
+        return;
+    }
 
-    board = boardObject.getBoard();
+    if (selectedTile && tile.highlighted === true) {
+        tile.piece = selectedTile.piece;
+        tile.color = selectedTile.color;
+        tile.isInitialPosition = false;
+
+        selectedTile.piece = Piece.EMPTY;
+        selectedTile.color = Color.NONE;
+        selectedTile.isInitialPosition = false;
+        selectedTile = undefined;
+
+        GetGame().switchTurn();
+    }
+    clearHighlight();
 }
 </script>
 
@@ -87,11 +106,14 @@ function tileHover(x: number, y: number) {
     }
 
     
-    .tile.highlight {
-        background-color: blue;
+    .tile.highlight.light {
+        background-color: #efef8f;
     }
-    .tile.highlight:hover {
-        background-color: darkblue;
+    .tile.highlight.medium {
+        background-color: #d9cd60;
+    }
+    .tile.highlight.dark {
+        background-color: #c2ad35;
     }
      
 
@@ -117,8 +139,7 @@ function tileHover(x: number, y: number) {
                     class="tile {getTileGradient(x, y)}"
                     class:highlight={tile.highlighted}
                     style="margin-top: {findTopMargin(row.length, x)}px; color: {tile.color === Color.WHITE ? 'white' : 'black'};"
-                    on:mouseenter={() => tileHover(x, y)}
-                    on:mouseleave={() => clearHover()}
+                    on:mousedown={() => onTileClick(tile)}
                 >
                 {#if tile.piece !== Piece.EMPTY}
                     {#if tile.color === Color.WHITE}
