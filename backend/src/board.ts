@@ -10,6 +10,9 @@ import { RookMoveSet } from "./movesets/rookMoveSet";
 import { Piece } from "./piece";
 import { Tile } from "./tile";
 
+type PartialSerializedTile = Omit<Tile, 'directions'> & { directions: Record<Directions, Tile | string | undefined> };
+type SerializedTile = Omit<Tile, 'directions'> & { directions: Record<Directions, string | undefined> };
+
 export class Board {
     private board: Tile[][];
 
@@ -240,5 +243,32 @@ export class Board {
         if (!moveset) return false;
         const allowedTiles = moveset.getAvailableTiles(from);
         return !!allowedTiles.find((t) => t.name === to.name);
+    }
+
+    public serialize(): SerializedTile[] {
+        const tileClones = [];
+
+        for (const row of this.board) {
+            for (const tile of row) {
+                tileClones.push({
+                    name: tile.name,
+                    piece: tile.piece,
+                    color: tile.color,
+                    gradient: tile.gradient,
+                    highlighted: tile.highlighted,
+                    isInitialPosition: tile.isInitialPosition,
+                    directions: {
+                        [Directions.TOP]: tile.directions[Directions.TOP]?.name,
+                        [Directions.TOPLEFT]: tile.directions[Directions.TOPLEFT]?.name,
+                        [Directions.TOPRIGHT]: tile.directions[Directions.TOPRIGHT]?.name,
+                        [Directions.BOTTOM]: tile.directions[Directions.BOTTOM]?.name,
+                        [Directions.BOTTOMLEFT]: tile.directions[Directions.BOTTOMLEFT]?.name,
+                        [Directions.BOTTOMRIGHT]: tile.directions[Directions.BOTTOMRIGHT]?.name,
+                    },
+                } as SerializedTile);
+            }
+        }
+
+        return tileClones;
     }
 }

@@ -1,19 +1,34 @@
 <script lang="ts">
 import { io } from "socket.io-client";
-import { onMount } from "svelte";
+import { onDestroy, onMount } from "svelte";
 
-const socket = io("http://localhost:3000/aaa-aaa-aaa-aaa-aaa", { path: "/api" });
-const messages = [] as string[];
+const socket = io("http://localhost:3000/aaaaa-aaaaa-aaaaa-aaaaa-aaaaa", { path: "/api" });
+let messages = [] as string[];
 
 onMount(() => {
+    socket.on("error", (msg) => {
+        messages = [...messages, "Error: " + msg];
+    });
 
-    try {
-        socket.send("message", "message")
-    } catch (e) {
-        const err = e as Error;
-        messages.push(err.message);
-    }
+    socket.on("message", (msg) => {
+        console.log(msg);
+        messages = [...messages, "Message: " + msg];
+    });
+
+    socket.on("join", (msg) => {
+        messages = [...messages, "Joined: " + msg];
+    });
+
+    socket.on("board", (msg) => {
+        console.log(msg);
+    })
+});
+
+onDestroy(() => {
+    socket.disconnect();
 })
+
+$: messages = messages;
 </script>
 
 <h1>Messages: </h1>
