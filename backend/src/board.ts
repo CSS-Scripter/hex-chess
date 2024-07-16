@@ -250,25 +250,68 @@ export class Board {
 
         for (const row of this.board) {
             for (const tile of row) {
-                tileClones.push({
-                    name: tile.name,
-                    piece: tile.piece,
-                    color: tile.color,
-                    gradient: tile.gradient,
-                    highlighted: tile.highlighted,
-                    isInitialPosition: tile.isInitialPosition,
-                    directions: {
-                        [Directions.TOP]: tile.directions[Directions.TOP]?.name,
-                        [Directions.TOPLEFT]: tile.directions[Directions.TOPLEFT]?.name,
-                        [Directions.TOPRIGHT]: tile.directions[Directions.TOPRIGHT]?.name,
-                        [Directions.BOTTOM]: tile.directions[Directions.BOTTOM]?.name,
-                        [Directions.BOTTOMLEFT]: tile.directions[Directions.BOTTOMLEFT]?.name,
-                        [Directions.BOTTOMRIGHT]: tile.directions[Directions.BOTTOMRIGHT]?.name,
-                    },
-                } as SerializedTile);
+                tileClones.push(this.serializeTile(tile));
             }
         }
 
         return tileClones;
+    }
+
+    private serializeTile(tile: Tile): SerializedTile {
+        return {
+            name: tile.name,
+            piece: tile.piece,
+            color: tile.color,
+            gradient: tile.gradient,
+            highlighted: tile.highlighted,
+            isInitialPosition: tile.isInitialPosition,
+            directions: {
+                [Directions.TOP]: tile.directions[Directions.TOP]?.name,
+                [Directions.TOPLEFT]: tile.directions[Directions.TOPLEFT]?.name,
+                [Directions.TOPRIGHT]: tile.directions[Directions.TOPRIGHT]?.name,
+                [Directions.BOTTOM]: tile.directions[Directions.BOTTOM]?.name,
+                [Directions.BOTTOMLEFT]: tile.directions[Directions.BOTTOMLEFT]?.name,
+                [Directions.BOTTOMRIGHT]: tile.directions[Directions.BOTTOMRIGHT]?.name,
+            },
+        } as SerializedTile;
+    }
+
+    public getAllowedMoves(tileID: string): string[] {
+        const tile = this.getTileByID(tileID);
+        if (!tile) return [];
+
+        const moveset = this.getMovesetByTile(tile);
+        const allowedTiles = moveset?.getAvailableTiles(tile) ?? [];
+        return allowedTiles?.map((t) => t.name);
+    }
+
+    private getTileByID(id: string): Tile | undefined {
+        for (const row of this.board) {
+            for (const tile of row) {
+                if (tile.name === id) return tile;
+            }
+        }
+    }
+
+    public doMove(from: string, to: string) {
+        const fromTile = this.getTileByID(from);
+        const toTile = this.getTileByID(to);
+
+        if (!fromTile || !toTile) throw new Error('tile not found');
+
+        const moveset = this.getMovesetByTile(fromTile);
+        if (!moveset) throw new Error('tile does not contain piece');
+
+        const allowedMoves = moveset.getAvailableTiles(fromTile);
+        const isMoveAllowed = allowedMoves.map((t) => t.name).includes(to);
+        if (!isMoveAllowed) throw new Error('move is not allowed');
+
+        toTile.piece = fromTile.piece;
+        toTile.color = fromTile.color;
+        toTile.isInitialPosition = false;
+        
+        fromTile.piece = Piece.EMPTY;
+        fromTile.color = Color.NONE;
+        fromTile.isInitialPosition = false;
     }
 }
