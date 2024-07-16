@@ -43,9 +43,54 @@ export type Tile = {
 }
 
 export class Board {
-    private board: Tile[][];
+    private board: Tile[][] = [];
 
-    constructor() {
+    constructor(tiles: Tile[] = []) {
+        if (tiles.length !== 91) {
+            this.initNew();
+        } else {
+            this.initFromTiles(tiles);
+        }
+    }
+
+    public initFromTiles(tiles: Tile[]) {
+        this.board = [];
+
+        const tileMap = {} as Record<string, Tile>;
+        tiles.forEach((t) => tileMap[t.name] = t);
+        tiles = tiles.map((t) => {
+            const directions = [
+                Directions.TOP,
+                Directions.BOTTOM,
+                Directions.TOPLEFT,
+                Directions.TOPRIGHT,
+                Directions.BOTTOMLEFT,
+                Directions.BOTTOMRIGHT,
+            ];
+
+            directions.forEach((d) => {
+                const tname = t.directions[d] as unknown as string;
+                if (!tname) return;
+                t.directions[d] = tileMap[tname];
+            });
+
+            t.color = (t.color as unknown as string) === 'white' ? Color.WHITE : Color.BLACK;
+
+            return t;
+        })
+
+        let i = 0;
+        for(let y = 0; y < 11; y++) {
+            const rows = Math.min(1 + (y * 2), 11);
+            this.board.push([]);
+            for(let x = 0; x < rows; x++) {
+                this.board[y].push(tiles[i]);
+                i++;
+            }
+        }
+    }
+
+    private initNew() {
         this.board = [];
 
         for(let y = 0; y < 11; y++) {

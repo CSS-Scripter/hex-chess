@@ -13,11 +13,13 @@ const seededId = "aaaaa-aaaaa-aaaaa-aaaaa-aaaaa"
 seededGame.id = seededId
 const games = { [seededId]: seededGame } as Record<string, Game>;
 
-app.get("/api/game/new", () => {
+app.get("/game/new", (req, res) => {
     const game = new Game();
     games[game.id] = game;
 
-    return { id: game.id };
+    console.log(`created game ${game.id}`);
+
+    return res.status(201).json({ id: game.id });
 });
 
 
@@ -27,6 +29,9 @@ gameNSP.on("connection", (socket) => {
     try {
         const gameID = socket.nsp.name.slice(1);
         game = games[gameID];
+        if (!game) {
+            throw new Error("game not found");
+        }
     
         const handshakeData = socket.handshake;
         const joinAs = handshakeData.query["join_as"];
@@ -49,10 +54,12 @@ gameNSP.on("connection", (socket) => {
                 throw new Error('invalid handshake');
         }
 
+        console.log(`player ${player.color} succesfully connected to game ${game.id}`);
         socket.emit("joined", { color: player.color, token: player.token });
-        socket.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize });
+        socket.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize() });
     } catch (e) {
-        console.error(e);
+        const err = e as Error;
+        console.log(`${err.name}: ${err.message}`);
         socket.emit("error", { status: 400, error: "invalid handshake" });
         socket.disconnect();
         return;
@@ -67,13 +74,18 @@ gameNSP.on("connection", (socket) => {
         try {
             game.board.doMove(move.from, move.to);
             game.switchTurn();
-            socket.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize });
+            socket.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize() });
         } catch (e) {
             console.error(e);
             socket.emit("error", { status: 400, error: "illegal move" });
         }
     });
 });
+
+app.all("*", (_, res) => {
+    console.log("404!");
+    res.status(404).send("not found");
+})
 
 server.listen(3000, () => {
     console.log('Listening on port 3000');
