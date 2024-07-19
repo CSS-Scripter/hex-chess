@@ -26,6 +26,7 @@ app.get("/game/new", (req, res) => {
 const gameNSP = io.of(/^\/[a-f\d]+-[a-f\d]+-[a-f\d]+-[a-f\d]+-[a-f\d]+$/);
 gameNSP.on("connection", (socket) => {
     let game: Game | undefined;
+    let player = { socket } as Player
     try {
         const gameID = socket.nsp.name.slice(1);
         game = games[gameID];
@@ -35,9 +36,8 @@ gameNSP.on("connection", (socket) => {
     
         const handshakeData = socket.handshake;
         const joinAs = handshakeData.query["join_as"];
-        const token = handshakeData.auth.token;
+        player.token = handshakeData.auth.token;
 
-        let player = { socket, token } as Player
         switch (joinAs) {
             case "new":
                 player = game.registerPlayer(socket);
@@ -66,15 +66,24 @@ gameNSP.on("connection", (socket) => {
     }
 
     socket.on("get_allowed_moves", (tileID: string) => {
-        const allowedMoves = game.board.getAllowedMoves(tileID);
-        socket.emit("allowed_moves", { from: tileID, allowed: allowedMoves });
+        const tile = game.board.getTileByID(tileID);
+        if (player.color === game.currentTurn && player.color === tile?.color) {
+            const allowedMoves = game.board.getAllowedMoves(tileID);
+            socket.emit("allowed_moves", { from: tileID, allowed: allowedMoves });
+        }
     });
 
     socket.on("move", (move: {from: string, to: string}) => {
+        if (move.from === move.to) return;
         try {
-            game.board.doMove(move.from, move.to);
-            game.switchTurn();
-            socket.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize() });
+            const movedColor = game.board.getTileByID(move.from)?.color;
+            const yourColor = player.color;
+
+            if (game.currentTurn === yourColor && yourColor === movedColor) {
+                game.board.doMove(move.from, move.to);
+                game.switchTurn();
+                gameNSP.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize() });
+            }
         } catch (e) {
             console.error(e);
             socket.emit("error", { status: 400, error: "illegal move" });

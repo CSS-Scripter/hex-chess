@@ -300,4 +300,12 @@ export class Board {
             }
         }
     }
+
+    public highlightTiles(tiles: string[]) {
+        for (const row of this.board) {
+            for (const tile of row) {
+                tile.highlighted = tiles.includes(tile.name);
+            }
+        }
+    }
 }

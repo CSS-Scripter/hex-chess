@@ -285,7 +285,7 @@ export class Board {
         return allowedTiles?.map((t) => t.name);
     }
 
-    private getTileByID(id: string): Tile | undefined {
+    public getTileByID(id: string): Tile | undefined {
         for (const row of this.board) {
             for (const tile of row) {
                 if (tile.name === id) return tile;

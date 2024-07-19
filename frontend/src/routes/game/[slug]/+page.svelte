@@ -2,15 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { AuthStore } from '$lib/authStore';
 	import { Board, Color, Piece, type Tile } from '$lib/board';
-	import { io } from 'socket.io-client';
+	import { io, Socket } from 'socket.io-client';
 	import { onMount } from 'svelte';
 
     export let data;
     const gameId = data.gameId;
 
     let boardObj: Board;
-    let socket;
+    let socket: Socket;
     let yourColor: Color;
+    let selectedTile: Tile | undefined = undefined;
 
     onMount(() => {
         const gameStore = new AuthStore();
@@ -46,7 +47,13 @@
             const currentMove = data.currentToMove === 'white' ? Color.WHITE : Color.BLACK;
             const tiles = data.board;
             boardObj = new Board(tiles);
-       })
+        });
+
+        socket.on("allowed_moves", ({ from, allowed }) => {
+            const toHighlight = [from, ...allowed];
+            boardObj.highlightTiles(toHighlight);
+            board = boardObj.getBoard();
+        })
     });
 
     $: board = boardObj?.getBoard();
@@ -63,7 +70,26 @@
         return gradients[tile.gradient];
     }
 
-    function onTileClick(tile: Tile) {}
+    function onTileClick(tile: Tile) {
+        if (tile.highlighted && selectedTile) {
+            const from = selectedTile.name;
+            const to = tile.name;
+            if (from === to) {
+                selectedTile = undefined;
+                boardObj.clearHighlight();
+                board = boardObj.getBoard();
+                return;
+            }
+            socket.emit("move", { from, to });
+        } else if (tile.piece !== Piece.EMPTY) {
+            selectedTile = tile;
+            socket.emit("get_allowed_moves", tile.name);
+        } else {
+            selectedTile = undefined;
+            boardObj.clearHighlight();
+            board = boardObj.getBoard();
+        }
+    }
 </script>
 
 <h1>{gameId}</h1>
