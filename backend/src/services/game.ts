@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { Socket } from "socket.io";
+import { Color } from "../types/color";
 import { Board } from "./board";
-import { Color } from "./color";
 
 export type Player = {
     socket: Socket;
@@ -59,6 +59,13 @@ export class Game {
         }
 
         throw new Error("unauthorized");
+    }
+
+    public emitBoard() {
+        const serializedBoard = this.board.serialize();
+        const objToEmit = { currentToMove: this.currentTurn, board: serializedBoard };
+        this.playerBlack?.socket.emit("game_update", objToEmit);
+        this.playerWhite?.socket.emit("game_update", objToEmit);
     }
 
     private generateToken(): string {

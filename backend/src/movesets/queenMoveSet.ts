@@ -1,4 +1,4 @@
-import { Tile } from "../tile";
+import { Tile } from "../types/tile";
 import { BischopMoveSet } from "./bischopMoveSet";
 import { MoveSet } from "./moveset";
 import { RookMoveSet } from "./rookMoveSet";

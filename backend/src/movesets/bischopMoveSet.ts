@@ -1,6 +1,6 @@
-import { Directions } from "../directions";
-import { Piece } from "../piece";
-import { Tile } from "../tile";
+import { Directions } from "../types/directions";
+import { Piece } from "../types/piece";
+import { Tile } from "../types/tile";
 import { MoveSet } from "./moveset";
 
 export class BischopMoveSet extends MoveSet {

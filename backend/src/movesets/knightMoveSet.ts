@@ -1,5 +1,5 @@
-import { Directions } from "../directions";
-import { Tile } from "../tile";
+import { Directions } from "../types/directions";
+import { Tile } from "../types/tile";
 import { MoveSet } from "./moveset";
 
 

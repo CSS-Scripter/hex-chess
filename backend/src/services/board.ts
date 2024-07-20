@@ -1,16 +1,16 @@
-import { Color } from "./color";
-import { Directions } from "./directions";
-import { BischopMoveSet } from "./movesets/bischopMoveSet";
-import { KingMoveSet } from "./movesets/kingMoveSet";
-import { KnightMoveSet } from "./movesets/knightMoveSet";
-import { MoveSet } from "./movesets/moveset";
-import { PawnMoveSet } from "./movesets/pawnMoveSet";
-import { QueenMoveSet } from "./movesets/queenMoveSet";
-import { RookMoveSet } from "./movesets/rookMoveSet";
-import { Piece } from "./piece";
-import { Tile } from "./tile";
+import { BischopMoveSet } from "../movesets/bischopMoveSet";
+import { KingMoveSet } from "../movesets/kingMoveSet";
+import { KnightMoveSet } from "../movesets/knightMoveSet";
+import { MoveSet } from "../movesets/moveset";
+import { PawnMoveSet } from "../movesets/pawnMoveSet";
+import { QueenMoveSet } from "../movesets/queenMoveSet";
+import { RookMoveSet } from "../movesets/rookMoveSet";
+import { Color, getOppositeColor } from "../types/color";
+import { Directions } from "../types/directions";
+import { Piece } from "../types/piece";
+import { Tile } from "../types/tile";
+import { ProjectedBoard } from "./projectedBoard";
 
-type PartialSerializedTile = Omit<Tile, 'directions'> & { directions: Record<Directions, Tile | string | undefined> };
 type SerializedTile = Omit<Tile, 'directions'> & { directions: Record<Directions, string | undefined> };
 
 export class Board {
@@ -215,32 +215,12 @@ export class Board {
         return moveset;
     }
 
-    public highlightTile(tile: Tile) {
-        const moveset = this.getMovesetByTile(tile);
-        if (moveset) {
-            tile.highlighted = true;
-            this.highlightMoveSet(tile, moveset);
-        }
-    }
-
-    private highlightMoveSet(tile: Tile, moveset: MoveSet) {
-        const tilesToHighlight = moveset.getAvailableTiles(tile);
-        tilesToHighlight.forEach((t) => t.highlighted = true);
-    }
-
-    public clearHighlight() {
-        for (const row of this.board) {
-            for (const tile of row) {
-                tile.highlighted = false;
-            }
-        }
-    }
-
     public isMoveAllowed(from: Tile, to: Tile): boolean {
         if (from.piece === Piece.EMPTY) return false;
 
         const moveset = this.getMovesetByTile(from);
         if (!moveset) return false;
+
         const allowedTiles = moveset.getAvailableTiles(from);
         return !!allowedTiles.find((t) => t.name === to.name);
     }
@@ -282,7 +262,12 @@ export class Board {
 
         const moveset = this.getMovesetByTile(tile);
         const allowedTiles = moveset?.getAvailableTiles(tile) ?? [];
-        return allowedTiles?.map((t) => t.name);
+        if (allowedTiles.length === 0) return [];
+
+        const projection = new ProjectedBoard(this);
+        return allowedTiles
+            .filter((t) => !projection.projectMoveAndCheckCheck(tileID, t.name, tile.color))
+            .map((t) => t.name);
     }
 
     public getTileByID(id: string): Tile | undefined {
@@ -313,5 +298,53 @@ export class Board {
         fromTile.piece = Piece.EMPTY;
         fromTile.color = Color.NONE;
         fromTile.isInitialPosition = false;
+    }
+
+    private getTilesByPiece(piece: Piece, color: Color): Tile[] {
+        const tiles = [];
+        for (const row of this.board) {
+            for (const tile of row) {
+                if (tile.piece === piece && tile.color === color) {
+                    tiles.push(tile);
+                }
+            }
+        }
+        return tiles;
+    }
+
+    public isKingChecked(color: Color) {
+        const kingTile = this.getTilesByPiece(Piece.KING, color)[0];
+        if (!kingTile) return false;
+
+        const moves = [
+            [Piece.QUEEN, new QueenMoveSet()],
+            [Piece.BISCHOP, new BischopMoveSet()],
+            [Piece.KNIGHT, new BischopMoveSet()],
+            [Piece.ROOK, new BischopMoveSet()],
+            [Piece.KING, new KingMoveSet()],
+        ] as [Piece, MoveSet][];
+        const opposingColor = getOppositeColor(color);
+
+        for (const entry of moves) {
+            const [piece, moveset] = entry;
+            const tiles = moveset.getAvailableTiles(kingTile);
+            const isChecked = !!tiles.find((t) => t.color === opposingColor && t.piece === piece);
+            if (isChecked) return true;
+        }
+
+        const attackingPawnSpaces = [];
+        if (color === Color.WHITE) {
+            attackingPawnSpaces.push(kingTile.directions[Directions.TOPLEFT]);
+            attackingPawnSpaces.push(kingTile.directions[Directions.TOPRIGHT]);
+        } else {
+            attackingPawnSpaces.push(kingTile.directions[Directions.BOTTOMLEFT]);
+            attackingPawnSpaces.push(kingTile.directions[Directions.BOTTOMRIGHT]);
+        }
+
+        for (const tile of attackingPawnSpaces) {
+            if (tile && tile.color === opposingColor && tile.piece === Piece.PAWN) return true;
+        }
+
+        return false;
     }
 }

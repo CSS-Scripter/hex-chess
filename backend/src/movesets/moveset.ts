@@ -1,4 +1,4 @@
-import { Tile } from "../tile";
+import { Tile } from "../types/tile";
 
 
 export abstract class MoveSet {
