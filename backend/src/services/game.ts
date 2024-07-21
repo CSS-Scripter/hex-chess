@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { Socket } from "socket.io";
-import { Color } from "../types/color";
+import { Color, getOppositeColor } from "../types/color";
 import { Board } from "./board";
 
 export type Player = {
@@ -16,6 +16,10 @@ export class Game {
 
     public playerWhite: Player | undefined;
     public playerBlack: Player | undefined;
+
+    public finished: boolean = false;
+    public winner: Color = Color.NONE;
+    public outcome: string = '';
 
     constructor() {
         this.id = crypto.randomUUID();
@@ -61,11 +65,35 @@ export class Game {
         throw new Error("unauthorized");
     }
 
+    public doMove(player: Player, from: string, to: string) {
+        this.board.doMove(from, to);
+
+        this.switchTurn();
+        this.emitBoard();
+
+        const checkState = this.board.isCheckOrStalemate(this.currentTurn);
+        if (checkState !== '') this.emitWin(getOppositeColor(this.currentTurn), checkState);
+    }
+
     public emitBoard() {
         const serializedBoard = this.board.serialize();
         const objToEmit = { currentToMove: this.currentTurn, board: serializedBoard };
-        this.playerBlack?.socket.emit("game_update", objToEmit);
-        this.playerWhite?.socket.emit("game_update", objToEmit);
+        this.emitToPlayers("game_update", objToEmit);
+    }
+
+    private emitWin(winningColor: Color, wonBy: string) {
+        console.log(wonBy, "by", winningColor);
+        this.finished = true;
+        this.winner = winningColor;
+        this.outcome = wonBy;
+
+        const colorString = winningColor === Color.BLACK ? "black" : "white";
+        this.emitToPlayers("win", `player ${colorString} has won by ${wonBy}`);
+    }
+
+    private emitToPlayers(name: string, msg: any) {
+        this.playerBlack?.socket.emit(name, msg);
+        this.playerWhite?.socket.emit(name, msg);
     }
 
     private generateToken(): string {

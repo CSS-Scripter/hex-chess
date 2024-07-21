@@ -312,6 +312,33 @@ export class Board {
         return tiles;
     }
 
+    public isCheckOrStalemate(color: Color) {
+        const tilesWithPieces = this.findTiles((t) => t.color === color && t.piece !== Piece.EMPTY);
+
+        const allowedMoves = tilesWithPieces.map((t) => {
+            const allowedMoves = this.getAllowedMoves(t.name);
+            return allowedMoves.length;
+        }).reduce((acc, v) => acc+v, 0);
+
+        if (allowedMoves === 0) {
+            if (this.isKingChecked(color)) return "checkmate";
+            else return "stalemate";
+        }
+
+        return "";
+    }
+
+    private findTiles(pred: (t: Tile) => boolean) {
+        const found = [];
+        for (const row of this.board) {
+            for (const tile of row) {
+                if (pred(tile)) found.push(tile);
+            }
+        }
+
+        return found;
+    }
+
     public isKingChecked(color: Color) {
         const kingTile = this.getTilesByPiece(Piece.KING, color)[0];
         if (!kingTile) return false;

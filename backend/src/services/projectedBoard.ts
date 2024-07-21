@@ -1,7 +1,9 @@
 import { BischopMoveSet } from "../movesets/bischopMoveSet";
 import { KingMoveSet } from "../movesets/kingMoveSet";
+import { KnightMoveSet } from "../movesets/knightMoveSet";
 import { MoveSet } from "../movesets/moveset";
 import { QueenMoveSet } from "../movesets/queenMoveSet";
+import { RookMoveSet } from "../movesets/rookMoveSet";
 import { Color, getOppositeColor } from "../types/color";
 import { Directions } from "../types/directions";
 import { Piece } from "../types/piece";
@@ -67,8 +69,8 @@ export class ProjectedBoard {
         const moves = [
             [Piece.QUEEN, new QueenMoveSet()],
             [Piece.BISCHOP, new BischopMoveSet()],
-            [Piece.KNIGHT, new BischopMoveSet()],
-            [Piece.ROOK, new BischopMoveSet()],
+            [Piece.KNIGHT, new KnightMoveSet()],
+            [Piece.ROOK, new RookMoveSet()],
             [Piece.KING, new KingMoveSet()],
         ] as [Piece, MoveSet][];
         const opposingColor = getOppositeColor(color);

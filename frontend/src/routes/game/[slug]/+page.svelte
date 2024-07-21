@@ -50,9 +50,13 @@
         });
 
         socket.on("allowed_moves", ({ from, allowed }) => {
-            const toHighlight = [from, ...allowed];
-            boardObj.highlightTiles(toHighlight);
+            boardObj.highlightTiles(allowed);
             board = boardObj.getBoard();
+        });
+
+        socket.on("win", (msg) => {
+            alert(msg);
+            goto('/');
         })
     });
 

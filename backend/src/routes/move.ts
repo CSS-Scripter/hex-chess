@@ -22,8 +22,8 @@ export class MoveHandler {
         if (move.from === move.to) return;
         if (!this.isYourTurn()) return;
         if (!this.movedOwnPiece(move.from)) return;
-        
-        this.doMove(move.from, move.to);
+
+        this.game.doMove(this.player, move.from, move.to);
     }
 
     private isYourTurn(): boolean {
@@ -35,9 +35,4 @@ export class MoveHandler {
         return movedColor === this.player.color;
     }
 
-    private doMove(from: string, to: string) {
-        this.game.board.doMove(from, to);
-        this.game.switchTurn();
-        this.game.emitBoard();    
-    }
 }
