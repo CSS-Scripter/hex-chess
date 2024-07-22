@@ -10,7 +10,6 @@ export class PawnMoveSet extends MoveSet {
         const mainDirection = tile.color === Color.WHITE ? Directions.TOP : Directions.BOTTOM;
         const oppositeDirection = tile.color === Color.WHITE ? Directions.BOTTOM : Directions.TOP;
         const takingDirections = tile.color === Color.WHITE ? [Directions.TOPLEFT, Directions.TOPRIGHT] : [Directions.BOTTOMLEFT, Directions.BOTTOMRIGHT];
-        const enPassantDirections = tile.color === Color.WHITE ? [Directions.BOTTOMLEFT, Directions.BOTTOMRIGHT] : [Directions.TOPLEFT, Directions.TOPRIGHT];
 
         const availableTiles = [] as (Tile | undefined)[];
 
@@ -32,15 +31,16 @@ export class PawnMoveSet extends MoveSet {
             }
         }
 
-        for(const dir of enPassantDirections) {
+        for(const dir of takingDirections) {
             const movingTile = tile.directions[dir];
             const takingTile = movingTile?.directions[oppositeDirection];
             if (
-                takingTile?.piece === Piece.PAWN &&
+                takingTile &&
+                takingTile.piece === Piece.PAWN &&
                 takingTile.color !== tile.color &&
                 takingTile.previouslyDoubleMoved
             ) {
-                availableTiles.push(takingTile);
+                availableTiles.push(movingTile);
             }
         }
 
