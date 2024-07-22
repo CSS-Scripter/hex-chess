@@ -37,6 +37,7 @@ export class Board {
                     gradient: this.getTileGradient(rows, x, y),
                     highlighted: false,
                     isInitialPosition: false,
+                    previouslyDoubleMoved: false,
                     directions: {}
                 } as Tile);
             }
@@ -291,13 +292,48 @@ export class Board {
         const isMoveAllowed = allowedMoves.map((t) => t.name).includes(to);
         if (!isMoveAllowed) throw new Error('move is not allowed');
 
+        if (this.checkIfMoveIsEnPassant(fromTile, toTile)) {
+            const passantDirection = fromTile.color === Color.WHITE ? Directions.BOTTOM : Directions.TOP;
+            const passantTile = toTile.directions[passantDirection];
+            if (passantTile) {
+                passantTile.color = Color.NONE;
+                passantTile.piece = Piece.EMPTY;
+            }
+        }
+
+        const isDoubleMove = this.checkIfMoveIsDouble(fromTile, toTile);
+
         toTile.piece = fromTile.piece;
         toTile.color = fromTile.color;
         toTile.isInitialPosition = false;
+        toTile.previouslyDoubleMoved = isDoubleMove;
         
         fromTile.piece = Piece.EMPTY;
         fromTile.color = Color.NONE;
         fromTile.isInitialPosition = false;
+        fromTile.previouslyDoubleMoved = false;
+    }
+
+    private checkIfMoveIsEnPassant(fromTile: Tile, toTile: Tile): boolean {
+        if (fromTile.piece !== Piece.PAWN) return false;
+
+        const movingColor = fromTile.color;
+        const enPassantDirection = movingColor === Color.WHITE ? Directions.BOTTOM : Directions.TOP;
+        const enPassantTile = toTile.directions[enPassantDirection];
+
+        return (
+            enPassantTile?.color !== fromTile.color &&
+            enPassantTile?.piece === Piece.PAWN &&
+            enPassantTile?.previouslyDoubleMoved
+        );
+    }
+
+    private checkIfMoveIsDouble(fromTile: Tile, toTile: Tile): boolean {
+        if (fromTile.piece !== Piece.PAWN) return false;
+
+        const direction = fromTile.color === Color.WHITE ? Directions.TOP : Directions.BOTTOM;
+        const doubleMoveTile = fromTile.directions[direction]?.directions[direction];
+        return doubleMoveTile?.name === toTile.name;
     }
 
     private getTilesByPiece(piece: Piece, color: Color): Tile[] {

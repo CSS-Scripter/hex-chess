@@ -41,10 +41,12 @@
             gameStore.storeGame(gameId, color, token);
 
             yourColor = color;
+            console.log(yourColor, data.color);
+            console.log(yourColor === Color.BLACK);
+            console.log(yourColor === Color.WHITE);
         });
 
         socket.on("game_update", (data) => {
-            const currentMove = data.currentToMove === 'white' ? Color.WHITE : Color.BLACK;
             const tiles = data.board;
             boardObj = new Board(tiles);
         });
@@ -100,7 +102,7 @@
 
 
 {#if board}
-<div class="board">
+<div class="board" class:rotated={yourColor === Color.BLACK}>
     {#each board as row, y }
         <div class="row">
             <div
@@ -154,6 +156,14 @@
 <style>
     * {
         user-select: none;
+    }
+
+    .rotated {
+        transform: rotate(180deg);
+    }
+
+    .rotated .tile {
+        transform: rotate(180deg);
     }
 
     .row {
