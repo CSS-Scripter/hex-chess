@@ -279,7 +279,7 @@ export class Board {
         }
     }
 
-    public doMove(from: string, to: string) {
+    public doMove(from: string, to: string, promotion: string | undefined) {
         const fromTile = this.getTileByID(from);
         const toTile = this.getTileByID(to);
 
@@ -312,6 +312,41 @@ export class Board {
         fromTile.color = Color.NONE;
         fromTile.isInitialPosition = false;
         fromTile.previouslyDoubleMoved = false;
+
+        if (toTile.piece === Piece.PAWN && this.isTilePromotionTile(toTile, toTile.color)) {
+            const promotionPiece = this.stringToPiece(promotion);
+            if (!promotionPiece) throw Error("invalid promotion piece");
+
+            toTile.piece = promotionPiece;
+        }
+    }
+
+    private isTilePromotionTile(tile: Tile, color: Color) {
+        if (color === Color.WHITE) {
+            return [
+                'a6', 'b7', 'c8',
+                'd9', 'e10', 'f11',
+                'g10', 'h9', 'i8',
+                'k7', 'l6'
+            ].includes(tile.name);
+        } else {
+            return [
+                'a1', 'b1', 'c1',
+                'd1', 'e1', 'f1',
+                'g1', 'h1', 'i1',
+                'k1', 'l1'
+            ].includes(tile.name);
+        }
+    }
+
+    private stringToPiece(piece: string | undefined): Piece | undefined {
+        switch (piece) {
+            case "rook": return Piece.ROOK;
+            case "knight": return Piece.KNIGHT;
+            case "bischop": return Piece.BISCHOP;
+            case "queen": return Piece.QUEEN;
+            default: return undefined;
+        }
     }
 
     private checkIfMoveIsEnPassant(fromTile: Tile, toTile: Tile): boolean {

@@ -65,8 +65,8 @@ export class Game {
         throw new Error("unauthorized");
     }
 
-    public doMove(player: Player, from: string, to: string) {
-        this.board.doMove(from, to);
+    public doMove(player: Player, from: string, to: string, promotion: string | undefined) {
+        this.board.doMove(from, to, promotion);
 
         this.switchTurn();
         this.emitBoard();

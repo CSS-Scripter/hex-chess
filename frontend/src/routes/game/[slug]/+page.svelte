@@ -13,6 +13,10 @@
     let yourColor: Color;
     let selectedTile: Tile | undefined = undefined;
 
+    let showPromotionDialog = false;
+    let promotionPromise: Promise<string> | undefined;
+    let promotionPromiseResolve: ((choice: string) => void) | undefined;
+
     onMount(() => {
         const gameStore = new AuthStore();
         const game = gameStore.getGame(gameId);
@@ -76,7 +80,7 @@
         return gradients[tile.gradient];
     }
 
-    function onTileClick(tile: Tile) {
+    async function onTileClick(tile: Tile) {
         if (tile.highlighted && selectedTile) {
             const from = selectedTile.name;
             const to = tile.name;
@@ -86,7 +90,13 @@
                 board = boardObj.getBoard();
                 return;
             }
-            socket.emit("move", { from, to });
+
+            let promotion: string | undefined;
+            if (requiresPromotionChoise(tile)) {
+                promotion = await requestPromotion();
+            }
+
+            socket.emit("move", { from, to, promotion });
         } else if (tile.piece !== Piece.EMPTY) {
             selectedTile = tile;
             socket.emit("get_allowed_moves", tile.name);
@@ -95,6 +105,39 @@
             boardObj.clearHighlight();
             board = boardObj.getBoard();
         }
+    }
+
+    function requiresPromotionChoise(toTile: Tile): boolean {
+        if (yourColor === Color.WHITE) {
+            return [
+                'a6', 'b7', 'c8',
+                'd9', 'e10', 'f11',
+                'g10', 'h9', 'i8',
+                'k7', 'l6'
+            ].includes(toTile.name);
+        } else {
+            return [
+                'a1', 'b1', 'c1',
+                'd1', 'e1', 'f1',
+                'g1', 'h1', 'i1',
+                'k1', 'l1'
+            ].includes(toTile.name);
+        }
+    }
+
+    async function requestPromotion(): Promise<string> {
+        promotionPromise = new Promise((res) => {
+            promotionPromiseResolve = res;
+        });
+
+        showPromotionDialog = true;
+
+        const choise = await promotionPromise;
+        promotionPromise = undefined;
+        promotionPromiseResolve = undefined;
+        showPromotionDialog = false;
+
+        return choise;
     }
 </script>
 
@@ -148,6 +191,20 @@
         <div class="tile legend" style="margin-top: {findTopMargin(11, 8)}px">i</div>
         <div class="tile legend" style="margin-top: {findTopMargin(11, 9)}px">k</div>
         <div class="tile legend" style="margin-top: {findTopMargin(11, 10)}px">l</div>
+    </div>
+</div>
+{/if}
+
+{#if showPromotionDialog}
+<div class="backdrop">
+    <div class="dialog">
+        <h1>Choose a promotion piece</h1>
+        <div class="options">
+            <button on:click={() => promotionPromiseResolve?.("rook") }>♖</button>
+            <button on:click={() => promotionPromiseResolve?.("knight") }>♘</button>
+            <button on:click={() => promotionPromiseResolve?.("bischop") }>♗</button>
+            <button on:click={() => promotionPromiseResolve?.("queen") }>♕</button>
+        </div>
     </div>
 </div>
 {/if}
@@ -228,5 +285,44 @@
         background-color: #c2ad35;
     }
      
+
+    .backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .dialog {
+        position: absolute;
+        top: 10vh;
+        left: 50%;
+        transform: translate(-50%, 0);
+        background: white;
+        border-radius: 16px;
+        padding: 1em;
+    }
+
+    .options {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+    }
+
+    .options button {
+        border: 1px solid #D1D1D1;
+        border-radius: 4px;
+        background: white;
+        padding: 8px 12px;
+        font-size: 32px;
+        font-weight: bold;
+    }
+
+    .options button:hover {
+        cursor: pointer;
+        background: #D1D1D1;
+    }
 
 </style>

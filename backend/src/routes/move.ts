@@ -4,6 +4,7 @@ import { Game, Player } from "../services/game";
 type MoveRequest = {
     from: string;
     to: string;
+    promotion?: string;
 }
 
 export class MoveHandler {
@@ -23,7 +24,7 @@ export class MoveHandler {
         if (!this.isYourTurn()) return;
         if (!this.movedOwnPiece(move.from)) return;
 
-        this.game.doMove(this.player, move.from, move.to);
+        this.game.doMove(this.player, move.from, move.to, move.promotion);
     }
 
     private isYourTurn(): boolean {
