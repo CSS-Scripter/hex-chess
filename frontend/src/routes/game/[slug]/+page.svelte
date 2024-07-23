@@ -1,13 +1,17 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { AuthStore } from '$lib/authStore';
-	import { Board, Color, Piece, type Tile } from '$lib/board';
-	import { io, Socket } from 'socket.io-client';
-	import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { PUBLIC_BASE_URL } from '$env/static/public';
+    import { AuthStore } from '$lib/authStore';
+    import { Board, Color, Piece, type Tile } from '$lib/board';
+    import { io, Socket } from 'socket.io-client';
+    import { onMount } from 'svelte';
 
     export let data;
     const gameId = data.gameId;
 
+    let state = "joining...";
+
+    let awaitingPlayer = true;
     let boardObj: Board;
     let socket: Socket;
     let yourColor: Color;
@@ -29,9 +33,9 @@
             auth = { token: game.token };
         }
 
-        socket = io("http://localhost:3000/" + gameId, {
+        socket = io(`${PUBLIC_BASE_URL}${gameId}`, {
             query, auth,
-            path: "/api"
+            path: "/ws",
         });
 
         socket.on("error", ({ status, message }) => {
@@ -45,14 +49,23 @@
             gameStore.storeGame(gameId, color, token);
 
             yourColor = color;
-            console.log(yourColor, data.color);
-            console.log(yourColor === Color.BLACK);
-            console.log(yourColor === Color.WHITE);
         });
 
         socket.on("game_update", (data) => {
             const tiles = data.board;
             boardObj = new Board(tiles);
+
+            const currentToMove = data.currentToMove === 'black' ? Color.BLACK : Color.WHITE;
+            awaitingPlayer = data.awaitingPlayer;
+            if (awaitingPlayer) {
+                state = "awaiting other player..."
+            } else {
+                if (currentToMove === yourColor) {
+                    state = "Your turn!"
+                } else {
+                    state = "awaiting opponent..."
+                }
+            }
         });
 
         socket.on("allowed_moves", ({ from, allowed }) => {
@@ -139,9 +152,18 @@
 
         return choise;
     }
+
+    function copyLinkToClipboard() {
+        const link = window.location.href;
+        navigator.clipboard.writeText(link);
+        alert("link copied to clipboard!");
+    }
 </script>
 
-<h1>{gameId}</h1>
+<h2>{state}</h2>
+{#if awaitingPlayer}
+    <button on:click={copyLinkToClipboard}>Copy Link</button>
+{/if}
 
 
 {#if board}
@@ -213,6 +235,13 @@
 <style>
     * {
         user-select: none;
+    }
+
+    button {
+        border: 1px solid #D1D1D1;
+        background: white;
+        padding: 8px 12px;
+        border-radius: 8px;
     }
 
     .rotated {

@@ -77,7 +77,11 @@ export class Game {
 
     public emitBoard() {
         const serializedBoard = this.board.serialize();
-        const objToEmit = { currentToMove: this.currentTurn, board: serializedBoard };
+        const objToEmit = {
+            currentToMove: this.currentTurn,
+            board: serializedBoard,
+            awaitingPlayer: !this.bothPlayersJoined(),
+        };
         this.emitToPlayers("game_update", objToEmit);
     }
 
@@ -98,5 +102,9 @@ export class Game {
 
     private generateToken(): string {
         return randomBytes(48).toString('hex');
+    }
+
+    public bothPlayersJoined(): boolean {
+        return !!this.playerWhite && !!this.playerBlack;
     }
 }

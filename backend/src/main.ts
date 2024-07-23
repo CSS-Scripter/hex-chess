@@ -8,7 +8,7 @@ import { Game } from "./services/game";
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, { path: "/api", cors: { origin: "http://localhost:5173", credentials: false } });
+const io = new Server(server, { path: "/ws", cors: { origin: "http://localhost:5173", credentials: false } });
 
 const seededGame = new Game();
 const seededId = "aaaaa-aaaaa-aaaaa-aaaaa-aaaaa"
@@ -36,7 +36,7 @@ gameNSP.on("connection", (socket) => {
 
     // Player joined game succesfully
     socket.emit("joined", { color: player.color, token: player.token });
-    socket.emit("game_update", { currentToMove: game.currentTurn, board: game.board.serialize() });
+    game.emitBoard();
 
     // Register event listeners
     registerGetAllowedMoves(socket, player, game);
