@@ -15,7 +15,7 @@ const seededId = "aaaaa-aaaaa-aaaaa-aaaaa-aaaaa"
 seededGame.id = seededId
 const games = { [seededId]: seededGame } as Record<string, Game>;
 
-app.get("/game/new", (req, res) => {
+app.get("/api/game/new", (req, res) => {
     const game = new Game();
     games[game.id] = game;
 
