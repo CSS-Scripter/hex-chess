@@ -22,6 +22,5 @@ RUN groupadd -g 999 appuser && \
 USER appuser
 WORKDIR /app
 COPY --from=build /app/build ./build
-COPY --from=build /app/src/proto ./build/proto
 COPY --from=deps /app/node_modules ./node_modules
 CMD ["node", "build/main.js"]
