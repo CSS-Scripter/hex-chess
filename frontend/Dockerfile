@@ -9,4 +9,4 @@ COPY . .
 RUN yarn build
 
 EXPOSE 8080
-CMD [ "http-server", "dist" ]
+CMD [ "http-server", "dist", "--proxy", "http://localhost:8080?" ]
