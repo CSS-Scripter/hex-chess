@@ -287,7 +287,9 @@ export class Board {
         const toTile = this.getTileByID(to);
 
         if (!fromTile || !toTile) throw new Error('tile not found');
+        move.by = fromTile.color;
         move.piece = fromTile.piece;
+        move.capture = toTile.piece !== Piece.EMPTY;
 
         const moveset = this.getMovesetByTile(fromTile);
         if (!moveset) throw new Error('tile does not contain piece');

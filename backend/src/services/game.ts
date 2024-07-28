@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { Socket } from "socket.io";
 import { Color, getOppositeColor } from "../types/color";
-import { Move } from "../types/move";
+import { AnnotateMove, Move } from "../types/move";
 import { Board } from "./board";
 
 export type Player = {
@@ -80,6 +80,7 @@ export class Game {
             this.winner = getOppositeColor(this.currentTurn);
         }
 
+        AnnotateMove(move);
         this.moves.push(move);
 
         this.emitBoard();
@@ -91,6 +92,7 @@ export class Game {
             currentToMove: this.currentTurn,
             board: serializedBoard,
             awaitingPlayer: !this.bothPlayersJoined(),
+            moves: this.moves,
             finished: this.finished,
             outcome: this.outcome,
             winner: this.winner,

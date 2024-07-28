@@ -35,6 +35,22 @@ export class Board {
         }
     }
 
+    public clearHighlightLabels() {
+        for (const row of this.board) {
+            for (const tile of row) {
+                tile.highlight = '';
+            }
+        }
+    }
+
+    public highlightWithLabel(tiles: string[], label: string) {
+        for (const row of this.board) {
+            for (const tile of row) {
+                tile.highlight = tiles.includes(tile.name) ? label : tile.highlight;
+            }
+        }
+    }
+
     public highlightTiles(tiles: string[]) {
         for (const row of this.board) {
             for (const tile of row) {

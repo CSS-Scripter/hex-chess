@@ -1,7 +1,9 @@
+import { Color } from "./color";
 import { Piece } from "./piece";
 
 export interface Move {
     notation: string;
+    by: Color,
     from: string;
     to: string;
     piece: Piece;

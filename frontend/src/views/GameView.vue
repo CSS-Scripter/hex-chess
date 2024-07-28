@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Board, type Tile } from '@/lib/board';
+import router from '@/router';
 import { useGamesStore } from '@/stores/games';
 import { io, type Socket } from 'socket.io-client';
 import { onBeforeMount, ref } from 'vue';
@@ -9,6 +10,11 @@ const route = useRoute();
 const gameID = route.params.id instanceof Array ? route.params.id[0] : route.params.id;
 const gameStore = useGamesStore();
 const board = ref(undefined as Board|undefined);
+const forceRerenderVar = ref(0);
+const moveHistory = ref([] as Record<string, any>[]);
+
+const gameFinished = ref(false);
+const finishReason = ref("");
 
 let socket: Socket;
 let yourColor: string;
@@ -61,17 +67,36 @@ onBeforeMount(() => {
                 state.value = "opponents turn..."
             }
         }
+
+        moveHistory.value = data.moves;
+        board.value?.clearHighlightLabels();
+        highlightLastMove();
+
+        const finished = data.finished;
+        const outcome = data.outcome;
+        const winner = data.winner;
+        
+        if (finished) {
+            gameFinished.value = true;
+            finishReason.value = `player ${winner} won by ${outcome}`;
+        }
     });
 
     socket.on("allowed_moves", ({ allowed }) => {
         board.value?.highlightTiles(allowed);
-    })
+    });
+
+    window.onresize = () => forceRerenderVar.value += 1;
 });
 
 function findTopMargin(rowSize: number, i: number) {
         const center = Math.ceil(rowSize / 2) - 1;
         const distanceFromCenter = Math.abs(center - i);
-        return `${distanceFromCenter * -22}px`;
+        const screenWidth = window.innerWidth;
+        let gap = -22;
+        if (screenWidth < 600) gap = -19;
+        if (screenWidth < 420) gap = -14;
+        return `${distanceFromCenter * gap}px`;
     }
 
 function getTileGradient(tile: Tile) {
@@ -86,11 +111,12 @@ async function onTileClick(tile: Tile) {
         if (from === to) {
             selectedTile = undefined;
             board.value?.clearHighlight();
+            highlightLastMove();
             return;
         }
 
         let promotion: string | undefined;
-        if (requiresPromotionChoise(tile)) {
+        if (requiresPromotionChoise(selectedTile, tile)) {
             promotion = await requestPromotion();
         }
 
@@ -101,10 +127,12 @@ async function onTileClick(tile: Tile) {
     } else {
         selectedTile = undefined;
         board.value?.clearHighlight();
+        highlightLastMove();
     }
 }
 
-function requiresPromotionChoise(toTile: Tile): boolean {
+function requiresPromotionChoise(fromTile: Tile, toTile: Tile): boolean {
+    if (fromTile.piece !== '♙♟︎') return false;
     if (yourColor === 'white') {
         return [
             'a6', 'b7', 'c8',
@@ -143,6 +171,29 @@ function copyLinkToClipboard() {
     alert("link copied to clipboard!");
 }
 
+function highlightLastMove() {
+    if (moveHistory.value.length > 0) {
+        const lastMove = moveHistory.value.slice(-1)[0];
+        if (lastMove.by !== yourColor)
+            board.value?.highlightWithLabel([lastMove.from, lastMove.to], 'last-move');
+    }
+}
+
+function highlightMove(move: Record<string, any>) {
+    board.value?.clearHighlightLabels();
+    board.value?.highlightWithLabel([move.from, move.to], 'move');
+    highlightLastMove();
+}
+
+function removeMoveHighlight() {
+    board.value?.clearHighlightLabels();
+    highlightLastMove();
+}
+
+function gotostart() {
+    router.push('/');
+}
+
 </script>
 
 <template>
@@ -151,13 +202,13 @@ function copyLinkToClipboard() {
     <p>{{ state }}</p>
     <button v-if="awaitingOtherPlayer" @click="copyLinkToClipboard">Copy Link</button>
 
-    <div class="board" v-if="!!board" :class="{rotated: yourColor === 'black'}">
+    <div class="board" v-if="!!board" :class="{rotated: yourColor === 'black'}" :key="forceRerenderVar">
         <div class="row" v-for="(row, y) in board.getBoard()">
             <div class="tile legend" :style="{'margin-top': findTopMargin(row.length, -1)}">{{ row[0].name.slice(1) }}</div>
             <div
                 v-for="(tile, x) in row"
                 class="tile"
-                :class="{[getTileGradient(tile)]: true, [tile.color]: true, highlight: tile.highlighted}"
+                :class="{[getTileGradient(tile)]: true, [tile.color]: true, highlight: tile.highlighted, [`highlight-${tile.highlight}`]: true}"
                 :style="{'margin-top': findTopMargin(row.length, x)}"
                 @click="() => onTileClick(tile)"
                 >
@@ -181,6 +232,13 @@ function copyLinkToClipboard() {
         </div>
     </div>
 
+    <div class="moves">
+        <div class="move" v-for="(move, i) in moveHistory.slice().reverse()" @mouseleave="() => removeMoveHighlight()" @mouseenter="() => highlightMove(move)">
+            {{ Math.ceil((moveHistory.length - i) / 2) }}.
+            {{ move.by === 'white' ? move.piece[0] : move.piece[1] }} {{ move.from }} ->
+            {{ move.capture ? 'x' : '' }}{{ move.to }}{{ move.mate ? '#' : move.checked ? '+' : '' }}{{ move.stale ? 'S' : '' }}
+        </div>
+    </div>
 
     <div class="backdrop" v-if="showPromotionDialog">
         <div class="dialog">
@@ -193,6 +251,14 @@ function copyLinkToClipboard() {
             </div>
         </div>
     </div>
+
+    <div class="backdrop" v-if="gameFinished">
+        <div class="dialog">
+            <h3>{{ finishReason }}</h3>
+            <button @click="gotostart()">Back to start</button>
+        </div>
+    </div>
+
 </template>
 
 
@@ -206,6 +272,10 @@ function copyLinkToClipboard() {
         background: white;
         padding: 8px 12px;
         border-radius: 8px;
+    }
+
+    .board {
+        margin: 20px 0;
     }
 
     .rotated {
@@ -284,6 +354,16 @@ function copyLinkToClipboard() {
     .tile.highlight.dark {
         background-color: #c2ad35;
     }
+
+
+
+    .tile.highlight-last-move {
+        background-color: #f25d15;
+    }
+
+    .tile.highlight-move {
+        background-color: #5d68ce;
+    }
      
 
     .backdrop {
@@ -323,6 +403,42 @@ function copyLinkToClipboard() {
     .options button:hover {
         cursor: pointer;
         background: #D1D1D1;
+    }
+
+    .moves {
+        display: flex;
+        flex-direction: row-reverse;
+        flex-wrap: wrap;
+        width: 320px;
+        margin: 0 auto;
+        border: 1px solid #D1D1D1;
+        border-radius: 12px;
+        padding: 12px 0;
+    }
+
+    .move {
+        width: 50%;
+        text-align: center;
+    }
+
+    @media (max-width: 600px) {
+        .row .tile {
+            width: 40px;
+            height: 36px;
+            margin-left: -4px;
+            margin-right: -4px;
+            font-size: 24px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .row .tile {
+            width: 30px;
+            height: 27px;
+            margin-left: -3px;
+            margin-right: -3px;
+            font-size: 18px;
+        }
     }
 
 </style>
