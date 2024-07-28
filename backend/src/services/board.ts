@@ -7,6 +7,7 @@ import { QueenMoveSet } from "../movesets/queenMoveSet";
 import { RookMoveSet } from "../movesets/rookMoveSet";
 import { Color, getOppositeColor } from "../types/color";
 import { Directions } from "../types/directions";
+import { Move } from "../types/move";
 import { Piece } from "../types/piece";
 import { Tile } from "../types/tile";
 import { ProjectedBoard } from "./projectedBoard";
@@ -279,11 +280,14 @@ export class Board {
         }
     }
 
-    public doMove(from: string, to: string, promotion: string | undefined) {
+    public doMove(from: string, to: string, promotion: string | undefined): Move {
+        let move = { from, to, promotion: Piece.EMPTY } as Move;
+
         const fromTile = this.getTileByID(from);
         const toTile = this.getTileByID(to);
 
         if (!fromTile || !toTile) throw new Error('tile not found');
+        move.piece = fromTile.piece;
 
         const moveset = this.getMovesetByTile(fromTile);
         if (!moveset) throw new Error('tile does not contain piece');
@@ -318,7 +322,12 @@ export class Board {
             if (!promotionPiece) throw Error("invalid promotion piece");
 
             toTile.piece = promotionPiece;
+            move.promotion = promotionPiece;
         }
+
+        move.checked = this.isKingChecked(getOppositeColor(toTile.color));
+
+        return move;
     }
 
     private isTilePromotionTile(tile: Tile, color: Color) {

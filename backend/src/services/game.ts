@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { Socket } from "socket.io";
 import { Color, getOppositeColor } from "../types/color";
+import { Move } from "../types/move";
 import { Board } from "./board";
 
 export type Player = {
@@ -20,6 +21,7 @@ export class Game {
     public finished: boolean = false;
     public winner: Color = Color.NONE;
     public outcome: string = '';
+    public moves: Move[] = [];
 
     constructor() {
         this.id = crypto.randomUUID();
@@ -66,13 +68,21 @@ export class Game {
     }
 
     public doMove(player: Player, from: string, to: string, promotion: string | undefined) {
-        this.board.doMove(from, to, promotion);
+        const move = this.board.doMove(from, to, promotion);
 
         this.switchTurn();
-        this.emitBoard();
-
         const checkState = this.board.isCheckOrStalemate(this.currentTurn);
-        if (checkState !== '') this.emitWin(getOppositeColor(this.currentTurn), checkState);
+        move.mated = checkState === 'checkmate';
+        move.stale = checkState === 'stalemate';
+        if (checkState !== '') {
+            this.finished = true;
+            this.outcome = checkState;
+            this.winner = getOppositeColor(this.currentTurn);
+        }
+
+        this.moves.push(move);
+
+        this.emitBoard();
     }
 
     public emitBoard() {
@@ -81,18 +91,11 @@ export class Game {
             currentToMove: this.currentTurn,
             board: serializedBoard,
             awaitingPlayer: !this.bothPlayersJoined(),
+            finished: this.finished,
+            outcome: this.outcome,
+            winner: this.winner,
         };
         this.emitToPlayers("game_update", objToEmit);
-    }
-
-    private emitWin(winningColor: Color, wonBy: string) {
-        console.log(wonBy, "by", winningColor);
-        this.finished = true;
-        this.winner = winningColor;
-        this.outcome = wonBy;
-
-        const colorString = winningColor === Color.BLACK ? "black" : "white";
-        this.emitToPlayers("win", `player ${colorString} has won by ${wonBy}`);
     }
 
     private emitToPlayers(name: string, msg: any) {
