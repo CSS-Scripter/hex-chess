@@ -9,6 +9,8 @@ export interface Move {
     piece: Piece;
     promotion: Piece;
 
+    possibleFroms: string[];
+
     capture: boolean;
     checked: boolean;
     mated: boolean;
@@ -26,12 +28,12 @@ const pieceNotations = {
 
 export const AnnotateMove = (m: Move) => {
     if (m.promotion !== Piece.EMPTY) {
-        return `${m.to}${pieceNotations[m.promotion]}`;
+        return `${m.to}=${pieceNotations[m.promotion]}`;
     }
 
-    // [Piece][From][x if capture][To][+ if checked][# if mated][S if stale]
+    // [Piece][From if possibleFroms > 0][x if capture][To][+ if checked][# if mated][S if stale]
     let notation = pieceNotations[m.piece];
-    notation += m.from.toLocaleLowerCase();
+    notation += getFromNotation(m);
     if (m.capture) notation += 'x';
     notation += m.to.toLowerCase();
 
@@ -40,4 +42,23 @@ export const AnnotateMove = (m: Move) => {
     else if (m.stale) notation += 'S';
 
     m.notation = notation;
+}
+
+const getFromNotation = (m: Move): string => {
+    if (m.possibleFroms?.length === 0) return '';
+
+    const fromCol = m.from.charAt(0);
+    const fromRow = m.from.slice(1);
+
+    let hasPieceInSameRow = false;
+    let hasPieceInSameCol = false;
+
+    m.possibleFroms.forEach((f) => {
+        if (f.charAt(0) === fromCol) hasPieceInSameCol = true;
+        if (f.slice(1) === fromRow) hasPieceInSameRow = true;
+    });
+
+    if (!hasPieceInSameCol) return fromCol;
+    if (!hasPieceInSameRow) return fromRow;
+    return m.from;
 }

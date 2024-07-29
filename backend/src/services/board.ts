@@ -193,28 +193,26 @@ export class Board {
     }
 
     private getMovesetByTile(tile: Tile): MoveSet | undefined {
-        let moveset: MoveSet | undefined = undefined;
-        switch(tile.piece) {
+        return this.getMovesetByPiece(tile.piece);
+    }
+
+    private getMovesetByPiece(piece: Piece): MoveSet | undefined {
+        switch(piece) {
             case Piece.KING:
-                moveset = new KingMoveSet();
-                break;
+                return new KingMoveSet();
             case Piece.QUEEN:
-                moveset = new QueenMoveSet();
-                break;
+                return new QueenMoveSet();
             case Piece.BISCHOP:
-                moveset = new BischopMoveSet();
-                break;
+                return new BischopMoveSet();
             case Piece.KNIGHT:
-                moveset = new KnightMoveSet();
-                break;
+                return new KnightMoveSet();
             case Piece.ROOK:
-                moveset = new RookMoveSet();
-                break;
+                return new RookMoveSet();
             case Piece.PAWN:
-                moveset = new PawnMoveSet();
-                break;
+                return new PawnMoveSet();
+            default:
+                return;
         }
-        return moveset;
     }
 
     public isMoveAllowed(from: Tile, to: Tile): boolean {
@@ -290,6 +288,7 @@ export class Board {
         move.by = fromTile.color;
         move.piece = fromTile.piece;
         move.capture = toTile.piece !== Piece.EMPTY;
+        move.possibleFroms = this.whatPiecesCanSeeTile(toTile, fromTile.piece, fromTile.color).filter((n) => n !== fromTile.name);
 
         const moveset = this.getMovesetByTile(fromTile);
         if (!moveset) throw new Error('tile does not contain piece');
@@ -455,5 +454,27 @@ export class Board {
         }
 
         return false;
+    }
+
+    private whatPiecesCanSeeTile(tile: Tile, piece: Piece, color: Color): string[] {
+        const otherPieceTiles = [];
+        for (const row of this.board) {
+            for (const t of row) {
+                if (t.piece === piece && t.color === color) otherPieceTiles.push(t);
+            }
+        }
+
+        const moveset = this.getMovesetByPiece(piece);
+        if (!moveset) return [];
+
+        const possibleTiles = [] as string[];
+
+        for (const t of otherPieceTiles) {
+            const availTiles = moveset.getAvailableTiles(t);
+            const canSee = availTiles.filter((t) => t.name === tile.name).length > 0;
+            if (canSee) possibleTiles.push(t.name);
+        }
+
+        return possibleTiles;
     }
 }

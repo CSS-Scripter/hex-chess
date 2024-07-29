@@ -11,9 +11,11 @@ export type OnConnectionResponse = {
 export const onConnection = (socket: Socket, availableGames: Record<string, Game>): OnConnectionResponse => {
     try {
         const gameID = socket.nsp.name.slice(1);
-        const game = availableGames[gameID];
+        let game = availableGames[gameID];
         if (!game) {
-            throw new Error("game not found");
+            game = new Game();
+            const success = game.loadGame(gameID);
+            if (!success) throw new Error("game not found");
         }
     
         const handshakeData = socket.handshake;

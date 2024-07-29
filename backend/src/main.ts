@@ -1,7 +1,9 @@
 import express from "express";
+import { readFileSync } from "fs";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { onConnection } from "./routes/connection";
+import { registerForfeit } from "./routes/forfeit";
 import { registerGetAllowedMoves } from "./routes/getAllowedMoves";
 import { MoveHandler } from "./routes/move";
 import { Game } from "./services/game";
@@ -10,10 +12,11 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, { path: "/ws", cors: { origin: "http://localhost:5173", credentials: false } });
 
-const seededGame = new Game();
-const seededId = "aaaaa-aaaaa-aaaaa-aaaaa-aaaaa"
-seededGame.id = seededId
-const games = { [seededId]: seededGame } as Record<string, Game>;
+const games = {} as Record<string, Game>;
+
+export const unloadGame = (gameId: string) => {
+    delete games[gameId];
+}
 
 app.get("/api/game/new", (req, res) => {
     const game = new Game();
@@ -22,6 +25,19 @@ app.get("/api/game/new", (req, res) => {
     console.log(`created game ${game.id}`);
 
     return res.status(201).json({ id: game.id });
+});
+
+app.get("/api/game/:id", (req, res) => {
+    const gameId = req.params.id;
+    try {
+        const game = JSON.parse(readFileSync(`./games/${gameId}.json`, { encoding: 'utf-8' }));
+        delete game.whiteToken;
+        delete game.blackToken;
+        res.status(200).json({ ok: true, game });
+    } catch (e) {
+        console.error(`failed to read game ${gameId} from storage`);
+        res.status(404).json({ ok: false, msg: 'not found'})
+    }
 });
 
 
@@ -40,6 +56,7 @@ gameNSP.on("connection", (socket) => {
 
     // Register event listeners
     registerGetAllowedMoves(socket, player, game);
+    registerForfeit(socket, player, game);
     new MoveHandler(player, game, socket);
 });
 

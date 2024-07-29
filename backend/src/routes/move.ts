@@ -24,7 +24,7 @@ export class MoveHandler {
         if (!this.isYourTurn()) return;
         if (!this.movedOwnPiece(move.from)) return;
 
-        this.game.doMove(this.player, move.from, move.to, move.promotion);
+        this.game.doMove(move.from, move.to, move.promotion);
     }
 
     private isYourTurn(): boolean {

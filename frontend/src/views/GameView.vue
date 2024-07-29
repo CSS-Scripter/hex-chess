@@ -233,10 +233,27 @@ function gotostart() {
     </div>
 
     <div class="moves">
-        <div class="move" v-for="(move, i) in moveHistory.slice().reverse()" @mouseleave="() => removeMoveHighlight()" @mouseenter="() => highlightMove(move)">
-            {{ Math.ceil((moveHistory.length - i) / 2) }}.
-            {{ move.by === 'white' ? move.piece[0] : move.piece[1] }} {{ move.from }} ->
-            {{ move.capture ? 'x' : '' }}{{ move.to }}{{ move.mate ? '#' : move.checked ? '+' : '' }}{{ move.stale ? 'S' : '' }}
+        <div class="index">
+            <div class="move" style="color: white">...</div>
+            <div class="move" style="color: white">...</div>
+            <div class="move" v-for="(_, i) in moveHistory.slice().filter((m) => m.by === 'white')">
+                {{ Math.ceil(moveHistory.length / 2) - i }}.
+            </div>
+        </div>
+        <div class="white-moves">
+            <div class="move"><b>WHITE</b></div>
+            <div class="move">------------</div>
+            <div class="move" v-for="(move, i) in moveHistory.slice().reverse().filter((m) => m.by === 'white')" @mouseleave="() => removeMoveHighlight()" @mouseenter="() => highlightMove(move)">
+                {{ move.notation }}
+            </div>
+        </div>
+        <div class="black-moves">
+            <div class="move"><b>BLACK</b></div>
+            <div class="move">------------</div>
+            <div class="move" v-if="moveHistory.length % 2 === 1" style="color: white">...</div>
+            <div class="move" v-for="(move, i) in moveHistory.slice().reverse().filter((m) => m.by === 'black')" @mouseleave="() => removeMoveHighlight()" @mouseenter="() => highlightMove(move)">
+                {{ move.notation }}
+            </div>
         </div>
     </div>
 
@@ -406,9 +423,8 @@ function gotostart() {
     }
 
     .moves {
-        display: flex;
-        flex-direction: row-reverse;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 0.3fr 1fr 1fr;
         width: 320px;
         margin: 0 auto;
         border: 1px solid #D1D1D1;
@@ -417,8 +433,11 @@ function gotostart() {
     }
 
     .move {
-        width: 50%;
         text-align: center;
+    }
+
+    .index .move {
+        text-align: right;
     }
 
     @media (max-width: 600px) {
