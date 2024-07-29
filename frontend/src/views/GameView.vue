@@ -15,6 +15,7 @@ const moveHistory = ref([] as Record<string, any>[]);
 
 const gameFinished = ref(false);
 const finishReason = ref("");
+const showForfeitDialog = ref(false);
 
 let socket: Socket;
 let yourColor: string;
@@ -194,6 +195,19 @@ function gotostart() {
     router.push('/');
 }
 
+function openForfeitDialog() {
+    showForfeitDialog.value = true;
+}
+
+function cancelForfeit() {
+    showForfeitDialog.value = false;    
+}
+
+function forfeit() {
+    socket.emit('forfeit');
+    showForfeitDialog.value = false;
+}
+
 </script>
 
 <template>
@@ -201,6 +215,7 @@ function gotostart() {
     <h2>{{ gameID }}</h2>
     <p>{{ state }}</p>
     <button v-if="awaitingOtherPlayer" @click="copyLinkToClipboard">Copy Link</button>
+    <button @click="openForfeitDialog">Forfeit</button>
 
     <div class="board" v-if="!!board" :class="{rotated: yourColor === 'black'}" :key="forceRerenderVar">
         <div class="row" v-for="(row, y) in board.getBoard()">
@@ -273,6 +288,15 @@ function gotostart() {
         <div class="dialog">
             <h3>{{ finishReason }}</h3>
             <button @click="gotostart()">Back to start</button>
+        </div>
+    </div>
+
+    <div class="backdrop" v-if="showForfeitDialog">
+        <div class="dialog">
+            <h3>Forfeit</h3>
+            <p>Are you sure?</p>
+            <button @click="cancelForfeit">Cancel</button>
+            <button @click="forfeit">Yes</button>
         </div>
     </div>
 
