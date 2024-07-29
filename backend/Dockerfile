@@ -23,4 +23,7 @@ USER appuser
 WORKDIR /app
 COPY --from=build /app/build ./build
 COPY --from=deps /app/node_modules ./node_modules
+
+RUN mkdir ./games
+
 CMD ["node", "build/main.js"]
