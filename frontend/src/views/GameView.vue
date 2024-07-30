@@ -181,6 +181,10 @@ function gotostart() {
     router.push('/');
 }
 
+function gotoReview() {
+    router.push(`/review/${gameID}`);
+}
+
 function openForfeitDialog() {
     showForfeitDialog.value = true;
 }
@@ -245,7 +249,10 @@ function forfeit() {
     <div class="backdrop" v-if="gameFinished">
         <div class="dialog">
             <h3>{{ finishReason }}</h3>
-            <button @click="gotostart()">Back to start</button>
+            <div class="actions">
+                <button @click="gotostart()">Back to start</button>
+                <button @click="gotoReview()">Review Game</button>
+            </div>
         </div>
     </div>
 
@@ -253,8 +260,10 @@ function forfeit() {
         <div class="dialog">
             <h3>Forfeit</h3>
             <p>Are you sure?</p>
-            <button @click="cancelForfeit">Cancel</button>
-            <button @click="forfeit">Yes</button>
+            <div class="actions">
+                <button @click="cancelForfeit">Cancel</button>
+                <button @click="forfeit">Yes</button>
+            </div>
         </div>
     </div>
 
