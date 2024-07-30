@@ -288,7 +288,11 @@ export class Board {
         move.by = fromTile.color;
         move.piece = fromTile.piece;
         move.capture = toTile.piece !== Piece.EMPTY;
+        move.capturedPiece = toTile.piece;
+        move.capturedColor = toTile.color;
         move.possibleFroms = this.whatPiecesCanSeeTile(toTile, fromTile.piece, fromTile.color).filter((n) => n !== fromTile.name);
+        move.enPassant = false;
+        move.enPassantCaptureTile = '';
 
         const moveset = this.getMovesetByTile(fromTile);
         if (!moveset) throw new Error('tile does not contain piece');
@@ -301,11 +305,18 @@ export class Board {
             const passantDirection = fromTile.color === Color.WHITE ? Directions.BOTTOM : Directions.TOP;
             const passantTile = toTile.directions[passantDirection];
             if (passantTile) {
+                move.enPassant = true;
+                move.enPassantCaptureTile = passantTile.name;
+                move.capture = true;
+                move.capturedColor = passantTile.color;
+                move.capturedPiece = passantTile.piece;
+
                 passantTile.color = Color.NONE;
                 passantTile.piece = Piece.EMPTY;
             }
         }
 
+        this.resetDoubleMove();
         const isDoubleMove = this.checkIfMoveIsDouble(fromTile, toTile);
 
         toTile.piece = fromTile.piece;
@@ -329,6 +340,14 @@ export class Board {
         move.checked = this.isKingChecked(getOppositeColor(toTile.color));
 
         return move;
+    }
+
+    private resetDoubleMove() {
+        for (const row of this.board) {
+            for (const tile of row) {
+                tile.previouslyDoubleMoved = false;
+            }
+        }
     }
 
     private isTilePromotionTile(tile: Tile, color: Color) {

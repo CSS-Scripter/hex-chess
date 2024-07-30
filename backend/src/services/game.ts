@@ -4,6 +4,7 @@ import { Socket } from "socket.io";
 import { unloadGame } from "../main";
 import { Color, getOppositeColor } from "../types/color";
 import { AnnotateMove, Move } from "../types/move";
+import { Piece, pieceToUTF8, utf8ToPiece } from "../types/piece";
 import { Board } from "./board";
 
 export type Player = {
@@ -24,6 +25,8 @@ export class Game {
     public winner: Color = Color.NONE;
     public outcome: string = '';
     public moves: Move[] = [];
+
+    private shouldSave = true;
 
     constructor() {
         this.id = crypto.randomUUID();
@@ -131,12 +134,14 @@ export class Game {
     }
 
     private saveGame() {
+        if (!this.shouldSave) return;
+        const moves = this.simplifyMoves();
         const objToSave = {
             id: this.id,
             finished: this.finished,
             winner: this.winner,
             outcome: this.outcome,
-            moves: this.moves,
+            moves,
 
             whiteToken: this.playerWhite?.token,
             blackToken: this.playerBlack?.token,
@@ -149,13 +154,15 @@ export class Game {
         }
     }
 
+    private simplifyMoves() {
+        return this.moves.map((m) => ({from: m.from, to: m.to, promotionPiece: pieceToUTF8(m.promotion) }));
+    }
+
     public loadGame(id: string): boolean {
+        this.shouldSave = false;
         try {
             const saveContents = JSON.parse(readFileSync(`./games/${id}.json`, { encoding: 'utf-8' }));
             this.id = saveContents.id;
-            this.finished = saveContents.finished;
-            this.winner = saveContents.winner;
-            this.outcome = saveContents.outcome;
 
             if (saveContents.whiteToken) {
                 this.playerWhite = { color: Color.WHITE, token: saveContents.whiteToken } as Player;
@@ -166,9 +173,16 @@ export class Game {
             }
 
             for (const move of saveContents.moves) {
-                this.doMove(move.from, move.to, move.promotionPiece);
+                this.doMove(move.from, move.to, utf8ToPiece(move.promotionPiece) ?? Piece.QUEEN);
             }
+
+            this.finished = saveContents.finished;
+            this.winner = saveContents.winner;
+            this.outcome = saveContents.outcome;
+
             console.log(`loaded game ${id}`);
+            this.shouldSave = true;
+            this.saveGame();
 
             return true;
         } catch (e) {
@@ -183,5 +197,15 @@ export class Game {
         this.playerWhite?.socket?.disconnect();
         this.playerBlack?.socket?.disconnect();
         unloadGame(this.id);
+    }
+
+    public serialize() {
+        return {
+            id: this.id,
+            finished: this.finished,
+            winner: this.winner,
+            outcome: this.outcome,
+            moves: this.moves,
+        }
     }
 }

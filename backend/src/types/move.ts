@@ -11,7 +11,12 @@ export interface Move {
 
     possibleFroms: string[];
 
+    enPassant: boolean;
+    enPassantCaptureTile: string;
+
     capture: boolean;
+    capturedPiece: Piece;
+    capturedColor: Color;
     checked: boolean;
     mated: boolean;
     stale: boolean;
