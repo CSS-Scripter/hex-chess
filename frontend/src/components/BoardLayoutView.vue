@@ -147,6 +147,10 @@ function getTileGradient(tile: Tile) {
     background-color: #5d68ce;
 }
 
+.tile.highlight-check {
+    background-color: goldenrod;
+}
+
 @media (max-width: 600px) {
     .row .tile {
         width: 40px;

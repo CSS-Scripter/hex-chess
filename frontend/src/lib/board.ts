@@ -43,6 +43,16 @@ export class Board {
         }
     }
 
+    public highlightWithLabelByPiece(piece: string, color: string, label: string) {
+        for (const row of this.board) {
+            for (const tile of row) {
+                if (tile.piece === piece && tile.color === color) {
+                    tile.highlight = label;
+                }
+            }
+        }
+    }
+
     public highlightWithLabel(tiles: string[], label: string) {
         for (const row of this.board) {
             for (const tile of row) {

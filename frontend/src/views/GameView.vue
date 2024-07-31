@@ -4,7 +4,7 @@ import { Board, type Tile } from '@/lib/board';
 import router from '@/router';
 import { useGamesStore } from '@/stores/games';
 import { io, type Socket } from 'socket.io-client';
-import { onBeforeMount, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
@@ -17,6 +17,7 @@ const moveHistory = ref([] as Record<string, any>[]);
 const gameFinished = ref(false);
 const finishReason = ref("");
 const showForfeitDialog = ref(false);
+const inCheck = ref(false);
 
 let socket: Socket;
 let yourColor: string;
@@ -29,7 +30,7 @@ let promotionPromise: Promise<string> | undefined;
 let promotionPromiseResolve: ((choice: string) => void) | undefined;
 
 
-onBeforeMount(() => {
+onMounted(() => {
     const game = gameStore.getGame(gameID);
     let query = { join_as: "new" };
     let auth = {};
@@ -81,6 +82,17 @@ onBeforeMount(() => {
         if (finished) {
             gameFinished.value = true;
             finishReason.value = `player ${winner} won by ${outcome}`;
+        }
+
+        const lastMove = moveHistory.value.slice(-1)[0];
+        if (lastMove && lastMove.by !== yourColor) {
+            inCheck.value = lastMove.checked;
+        } else {
+            inCheck.value = false;
+        }
+
+        if (inCheck.value) {
+            board.value.highlightWithLabelByPiece('♔♚', yourColor, "check");
         }
     });
 
@@ -201,11 +213,13 @@ function forfeit() {
 </script>
 
 <template>
-    <h1>GameTime</h1>
-    <h2>{{ gameID }}</h2>
-    <p>{{ state }}</p>
-    <button v-if="awaitingOtherPlayer" @click="copyLinkToClipboard">Copy Link</button>
-    <button @click="openForfeitDialog">Forfeit</button>
+    <div class="center">
+        <p>{{ state }} {{ inCheck ? "You're in check!" : '' }}</p>
+        <div class="actions">
+            <button v-if="awaitingOtherPlayer" @click="copyLinkToClipboard">Copy Link</button>
+            <button @click="openForfeitDialog">Forfeit</button>
+        </div>
+    </div>
 
     <BoardLayoutView :board="board" :color="yourColor" @click="onTileClick" :key="forceRerenderVar" />
 
@@ -273,6 +287,14 @@ function forfeit() {
 <style>
     * {
         user-select: none;
+    }
+
+    .center {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2em;
     }
 
     button {
