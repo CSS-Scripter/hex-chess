@@ -1,11 +1,13 @@
 import { randomBytes } from "crypto";
 import { readFileSync, writeFileSync } from "fs";
 import { Socket } from "socket.io";
+import { Board } from "../abstract/board";
+import { GameFactory } from "../factories/gameFactory";
+import { GlinskyFactory } from "../factories/glinskyFactory";
 import { unloadGame } from "../main";
 import { Color, getOppositeColor } from "../types/color";
 import { AnnotateMove, Move } from "../types/move";
 import { Piece, pieceToUTF8, utf8ToPiece } from "../types/piece";
-import { Board } from "./board";
 
 export type Player = {
     socket: Socket;
@@ -13,8 +15,14 @@ export type Player = {
     token: string;
 };
 
+const createGameFactory = (type: string): GameFactory | undefined => {
+    if (type === "glinsky") return new GlinskyFactory;
+}
+
 export class Game {
     public id: string;
+    public gameType: string;
+    public factory: GameFactory | undefined;
     public board: Board;
     public currentTurn: Color;
 
@@ -28,9 +36,13 @@ export class Game {
 
     private shouldSave = true;
 
-    constructor() {
+    constructor(gameType: string = "glinsky") {
         this.id = crypto.randomUUID();
-        this.board = new Board();
+        this.gameType = gameType;
+        this.factory = createGameFactory(this.gameType);
+        if (!this.factory) throw new Error("unknown game rules");
+
+        this.board = this.factory.createBoard();
         this.currentTurn = Color.WHITE;
     }
 
