@@ -5,7 +5,6 @@ import { onConnection } from "./routes/connection";
 import { registerForfeit } from "./routes/forfeit";
 import { registerGetAllowedMoves } from "./routes/getAllowedMoves";
 import { MoveHandler } from "./routes/move";
-import { Board } from "./services/board";
 import { Game } from "./services/game";
 
 const app = express();
@@ -33,9 +32,9 @@ app.get("/api/game/:id", (req, res) => {
         const game = new Game();
         game.loadGame(gameId);
 
-        const board = new Board();
+        const board = game.factory?.createBoard();
 
-        res.status(200).json({ ok: true, game: game.serialize(), board: board.serialize() });
+        res.status(200).json({ ok: true, game: game.serialize(), board: board!.serialize() });
     } catch (e) {
         console.error(`failed to read game ${gameId} from storage`);
         res.status(404).json({ ok: false, msg: 'not found'})

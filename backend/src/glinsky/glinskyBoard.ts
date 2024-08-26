@@ -6,6 +6,7 @@ import { Directions } from "../types/directions";
 import { Move } from "../types/move";
 import { Piece } from "../types/piece";
 import { Tile } from "../types/tile";
+import { GlinskyProjection } from "./glinskyProjection";
 
 import { BischopMoveSet } from "./movesets/bischopMoveSet";
 import { KingMoveSet } from "./movesets/kingMoveSet";
@@ -421,5 +422,19 @@ export class GlinskyBoard extends Board {
                 [Directions.BOTTOMRIGHT]: tile.directions[Directions.BOTTOMRIGHT]?.name,
             },
         };
+    }
+
+    public getAllowedMoves(tileID: string): string[] {
+        const tile = this.getTileByID(tileID);
+        if (!tile) return [];
+
+        const moveset = this.factory.createMovesetFromPiece(tile.piece);
+        const allowedTiles = moveset?.getAllowedMoves(tile) ?? [];
+        if (allowedTiles.length === 0) return [];
+
+        const projection = new GlinskyProjection(this);
+        return allowedTiles
+            .filter((t) => !projection.projectMoveAndCheckCheck(tileID, t.name, tile.color))
+            .map((t) => t.name);
     }
 }

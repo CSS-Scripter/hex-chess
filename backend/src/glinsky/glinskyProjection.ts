@@ -1,3 +1,4 @@
+import { Board } from "../abstract/board";
 import { BischopMoveSet } from "../movesets/bischopMoveSet";
 import { KingMoveSet } from "../movesets/kingMoveSet";
 import { KnightMoveSet } from "../movesets/knightMoveSet";
@@ -8,14 +9,13 @@ import { Color, getOppositeColor } from "../types/color";
 import { Directions } from "../types/directions";
 import { Piece } from "../types/piece";
 import { Tile } from "../types/tile";
-import { Board } from "./board";
 
 type State = {
     piece: Piece,
     color: Color,
 }
 
-export class ProjectedBoard {
+export class GlinskyProjection {
     private original: Tile[];
     private stateStorage = {} as Record<string, State>;
     
