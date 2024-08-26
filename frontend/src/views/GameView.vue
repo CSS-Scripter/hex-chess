@@ -297,14 +297,6 @@ function forfeit() {
         padding: 2em;
     }
 
-    button {
-        border: 1px solid #D1D1D1;
-        background: white;
-        padding: 8px 12px;
-        border-radius: 8px;
-    }
-     
-
     .backdrop {
         position: absolute;
         top: 0;
@@ -361,4 +353,6 @@ function forfeit() {
     .index .move {
         text-align: right;
     }
+
+    
 </style>

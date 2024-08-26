@@ -9,9 +9,9 @@ function findTopMargin(rowSize: number, i: number) {
         const center = Math.ceil(rowSize / 2) - 1;
         const distanceFromCenter = Math.abs(center - i);
         const screenWidth = window.innerWidth;
-        let gap = -22;
-        if (screenWidth < 600) gap = -19;
-        if (screenWidth < 420) gap = -14;
+        let gap = -26;
+        // if (screenWidth < 600) gap = -19;
+        // if (screenWidth < 420) gap = -14;
         return `${distanceFromCenter * gap}px`;
     }
 
@@ -26,16 +26,18 @@ function getTileGradient(tile: Tile) {
     <div class="board" v-if="!!board" :class="{rotated: color === 'black'}">
         <div class="row" v-for="(row, y) in board.getBoard()">
             <div class="tile legend" :style="{'margin-top': findTopMargin(row.length, -1)}">{{ row[0].name.slice(1) }}</div>
-            <div
+            <div class="outline"
                 v-for="(tile, x) in row"
-                class="tile"
-                :class="{[getTileGradient(tile)]: true, [tile.color]: true, highlight: tile.highlighted, [`highlight-${tile.highlight}`]: true}"
                 :style="{'margin-top': findTopMargin(row.length, x)}"
-                @click="() => emit('click', tile)"
+            >
+                <div
+                    class="tile"
+                    :class="{[getTileGradient(tile)]: true, [tile.color]: true, highlight: tile.highlighted, [`highlight-${tile.highlight}`]: true}"
+                    @click="() => emit('click', tile)"
                 >
                     {{ tile.piece.charAt(0) ?? '' }}
                 </div>
-
+            </div>
         </div>
         <div class="row">
             <div class="tile legend" :style="{'margin-top': findTopMargin(11, -1)}"></div>
@@ -52,6 +54,16 @@ function getTileGradient(tile: Tile) {
             <div class="tile legend" :style="{'margin-top': findTopMargin(11, 10)}">l</div>
         </div>
     </div>
+
+<svg style="visibility: hidden; position: absolute;" width="0" height="0" xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <defs>
+        <filter id="round">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />    
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+        </filter>
+    </defs>
+</svg>
 </template>
 
 <style>
@@ -73,20 +85,41 @@ function getTileGradient(tile: Tile) {
     flex-direction: row;
     justify-content: center;
     margin: 0 auto;
-    margin-top: 1px;
+    margin-top: 5px;
 }
 
-.row .tile {
+.outline {
     display: block;
-    width: 50px;
-    height: 45px;
+    width: 55px;
+    height: 50px;
     background: black;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    margin-left: -5px;
-    margin-right: -5px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);    
+    margin-left: -2px;
+    margin-right: -2px;
     text-align: center;
     font-size: 30px;
     color: white;
+    filter:url(#round);
+    position: relative;
+}
+
+.row .tile {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    display: block;
+    width: 50px;
+    height: 45px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    filter:url(#round);
+    transition-duration: 200ms;
+}
+
+.row .tile:hover, .row .tile.highlight, .row .tile.tile.highlight-check, .row .tile.tile.tile.highlight-last-move, .row .tile.tile.highlight-move {
+    width: 55px;
+    height: 50px;
+    top: 0;
+    left: 0;
 }
 
 .tile.black {
@@ -98,27 +131,15 @@ function getTileGradient(tile: Tile) {
 }
 
 .tile.light {
-    background-color: #FFCF9F;
-}
-
-.tile.light:hover {
-    background-color: #EFBF8F;
+    background-color: #88aaee;
 }
 
 .tile.medium {
-    background-color: #E9AD70;
-}
-
-.tile.medium:hover {
-    background-color: #D99D60;
+    background-color: #ff6b6b;
 }
 
 .tile.dark {
-    background-color: #D28D45;
-}
-
-.tile.dark:hover {
-    background: #C27D35;
+    background-color: #7fbc8c;
 }
 
 .row .tile.legend {
@@ -127,7 +148,11 @@ function getTileGradient(tile: Tile) {
 }
 
 
-.tile.highlight.light {
+.tile.highlight {
+    background-color: #ffdc58;
+}
+
+/* .tile.highlight.light {
     background-color: #efef8f;
 }
 .tile.highlight.medium {
@@ -135,12 +160,12 @@ function getTileGradient(tile: Tile) {
 }
 .tile.highlight.dark {
     background-color: #c2ad35;
-}
+} */
 
 
 
 .tile.highlight-last-move {
-    background-color: #f25d15;
+    background-color: #fd9745;
 }
 
 .tile.highlight-move {
@@ -148,11 +173,11 @@ function getTileGradient(tile: Tile) {
 }
 
 .tile.highlight-check {
-    background-color: goldenrod;
+    background-color: #fd9745;
 }
 
 @media (max-width: 600px) {
-    .row .tile {
+    .row .outline {
         width: 40px;
         height: 36px;
         margin-left: -4px;
@@ -162,7 +187,7 @@ function getTileGradient(tile: Tile) {
 }
 
 @media (max-width: 420px) {
-    .row .tile {
+    .row .outline {
         width: 30px;
         height: 27px;
         margin-left: -3px;
